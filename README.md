@@ -39,12 +39,9 @@ npm run build
 npm start
 ```
 
-## Deploy (Vercel / Heroku)
+## Deployed (Vercel)
 
-- **Vercel:** Push to GitHub and import the repo in [Vercel](https://vercel.com); use the default Next.js settings.
-- **Heroku:** Use the [Heroku Next.js buildpack](https://github.com/mars/create-next-app/blob/main/README.md#deploy-to-heroku).
-
-**Live app link:** *(add your deployed URL here after deployment, e.g. https://your-app.vercel.app)*
+**Live app link:** *https://forecast-monitoring-app.vercel.app/*
 
 ## Running the analysis notebook
 
