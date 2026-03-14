@@ -25,7 +25,7 @@ export async function fetchForecastGeneration(
   const data = (await res.json()) as unknown[];
   if (!Array.isArray(data)) return [];
 
-  return data.map(normalizeForecastRow);
+  return data.map((row) => normalizeForecastRow(row as Record<string, unknown>));
 }
 
 function normalizeForecastRow(row: Record<string, unknown>): ForecastRow {
