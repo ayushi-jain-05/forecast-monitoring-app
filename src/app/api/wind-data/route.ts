@@ -18,6 +18,7 @@ export async function GET(request: NextRequest) {
     48,
     Math.max(0, Number(searchParams.get("horizon")) || 4)
   );
+  const raw = searchParams.get("raw") === "1";
 
   // Clamp to January 2024
   const dateFrom =
@@ -41,8 +42,16 @@ export async function GET(request: NextRequest) {
     ]);
 
     const forecasts = filterForecastsJan2024Horizon048(forecastRaw);
-    const chartData = mergeActualAndForecast(actuals, forecasts, horizon);
 
+    if (raw) {
+      return Response.json({
+        actuals,
+        forecasts,
+        meta: { start: dateFrom, end: dateTo },
+      });
+    }
+
+    const chartData = mergeActualAndForecast(actuals, forecasts, horizon);
     return Response.json({
       data: chartData,
       meta: { start: dateFrom, end: dateTo, horizonHours: horizon },

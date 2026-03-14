@@ -1,17 +1,19 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { DateRangePicker } from "@/components/DateRangePicker";
 import { HorizonSlider } from "@/components/HorizonSlider";
 import { ForecastChart } from "@/components/ForecastChart";
-import type { ChartDataPoint } from "@/lib/types";
+import { mergeActualAndForecast } from "@/lib/forecastLogic";
+import type { ChartDataPoint, ActualRow, ForecastRow } from "@/lib/types";
 import { JAN_2024_START, JAN_2024_END } from "@/lib/types";
 
 export default function Home() {
   const [start, setStart] = useState(JAN_2024_START);
   const [end, setEnd] = useState(JAN_2024_END);
   const [horizon, setHorizon] = useState(4);
-  const [data, setData] = useState<ChartDataPoint[]>([]);
+  const [rawActuals, setRawActuals] = useState<ActualRow[]>([]);
+  const [rawForecasts, setRawForecasts] = useState<ForecastRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,23 +24,34 @@ export default function Home() {
       const params = new URLSearchParams({
         start,
         end,
-        horizon: String(horizon),
+        raw: "1",
       });
       const res = await fetch(`/api/wind-data?${params}`);
       const json = await res.json();
       if (!res.ok) {
         setError(json.error ?? "Request failed");
-        setData([]);
+        setRawActuals([]);
+        setRawForecasts([]);
         return;
       }
-      setData(json.data ?? []);
+      setRawActuals(json.actuals ?? []);
+      setRawForecasts(json.forecasts ?? []);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load data");
-      setData([]);
+      setRawActuals([]);
+      setRawForecasts([]);
     } finally {
       setLoading(false);
     }
-  }, [start, end, horizon]);
+  }, [start, end]);
+
+  const data = useMemo(
+    () =>
+      rawActuals.length > 0
+        ? mergeActualAndForecast(rawActuals, rawForecasts, horizon)
+        : [],
+    [rawActuals, rawForecasts, horizon]
+  );
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-6 sm:px-6 sm:py-8">

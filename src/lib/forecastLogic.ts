@@ -2,6 +2,26 @@ import type { ActualRow, ForecastRow, ChartDataPoint } from "./types";
 
 const MS_PER_HOUR = 60 * 60 * 1000;
 
+/** Index forecasts by startTime (target time) for O(1) lookup. Each bucket sorted by publishTime desc. */
+function indexForecastsByStartTime(
+  forecasts: ForecastRow[]
+): Map<number, ForecastRow[]> {
+  const byStart = new Map<number, ForecastRow[]>();
+  for (const f of forecasts) {
+    const startMs = new Date(f.startTime).getTime();
+    const list = byStart.get(startMs) ?? [];
+    list.push(f);
+    byStart.set(startMs, list);
+  }
+  for (const list of byStart.values()) {
+    list.sort(
+      (a, b) =>
+        new Date(b.publishTime).getTime() - new Date(a.publishTime).getTime()
+    );
+  }
+  return byStart;
+}
+
 /**
  * For a given target time, select the latest forecast that was published
  * at least `horizonHours` before the target time.
@@ -51,6 +71,7 @@ export function filterForecastsJan2024Horizon048(
 
 /**
  * Merge actuals with selected forecasts per target time.
+ * Uses an index by startTime so lookup is O(1) per actual instead of scanning all forecasts.
  * Missing forecasts are omitted (no point plotted for forecast).
  */
 export function mergeActualAndForecast(
@@ -58,15 +79,22 @@ export function mergeActualAndForecast(
   forecasts: ForecastRow[],
   horizonHours: number
 ): ChartDataPoint[] {
+  const byStart = indexForecastsByStartTime(forecasts);
+  const cutoffMs = horizonHours * MS_PER_HOUR;
   const result: ChartDataPoint[] = [];
 
   for (const actual of actuals) {
-    const forecast = selectLatestForecast(
-      actual.startTime,
-      forecasts,
-      horizonHours
-    );
-    const forecastVal = forecast ? forecast.generation : null;
+    const targetMs = new Date(actual.startTime).getTime();
+    const list = byStart.get(targetMs);
+    let forecastVal: number | null = null;
+    if (list) {
+      for (const f of list) {
+        if (new Date(f.publishTime).getTime() <= targetMs - cutoffMs) {
+          forecastVal = f.generation;
+          break;
+        }
+      }
+    }
     result.push({
       time: actual.startTime,
       actual: actual.generation,
