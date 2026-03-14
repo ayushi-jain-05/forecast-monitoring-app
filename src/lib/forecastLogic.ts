@@ -13,12 +13,12 @@ function indexForecastsByStartTime(
     list.push(f);
     byStart.set(startMs, list);
   }
-  for (const list of byStart.values()) {
+  Array.from(byStart.values()).forEach((list) => {
     list.sort(
       (a, b) =>
         new Date(b.publishTime).getTime() - new Date(a.publishTime).getTime()
     );
-  }
+  });
   return byStart;
 }
 
